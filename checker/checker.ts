@@ -1,3 +1,4 @@
+import * as dotenv from 'dotenv';
 import fs from 'fs';
 import glob from 'glob';
 import fetch from 'node-fetch';
@@ -5,11 +6,14 @@ import os from 'os';
 import path from 'path';
 import scrape from 'website-scraper';
 
+import logger from './tslog-config';
+
+dotenv.config();
+
 const ETHERSCAN_URI = "https://api.etherscan.io/api?";
 
-// Use the etherscan API to get the contract deployer.
-export default class urlContractChecker {
-  public url: any;
+export default class UrlContractChecker {
+  public url: URL;
   public contractAddress: string;
   public owner: string;
   public tmpDir: any;
@@ -28,12 +32,12 @@ export default class urlContractChecker {
     try {
       const foundContractAddressOnSite: boolean =
         await this.checkContractOnSite();
-      console.log(`foundContractAddressOnSite: ${foundContractAddressOnSite}`);
+      logger.debug(`foundContractAddressOnSite: ${foundContractAddressOnSite}`);
 
       const contractCreationAddressMatchesOwner: boolean =
         await this.checkContractCreation();
 
-      console.log(
+      logger.debug(
         `contractCreateAddressMatchesOwner: ${contractCreationAddressMatchesOwner}`
       );
 
@@ -43,7 +47,7 @@ export default class urlContractChecker {
         return false;
       }
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return false;
     }
   }
@@ -51,16 +55,16 @@ export default class urlContractChecker {
   public async checkContractCreation() {
     const etherscanApiUrl = `${ETHERSCAN_URI}module=contract&action=getcontractcreation&contractaddresses=${this.contractAddress}&apikey=${process.env.ETHERSCAN_API_KEY}`;
 
-    console.log(etherscanApiUrl);
+    logger.debug(etherscanApiUrl);
     const response = await fetch(etherscanApiUrl);
     const json: any = await response.json();
-    console.log(`json: ${JSON.stringify(json)}`);
+    logger.debug(`json: ${JSON.stringify(json)}`);
 
     const contractCreation = json.result[0];
     const contractCreationAddress = contractCreation.contractCreator;
 
-    console.log(`contractCreationAddress: ${contractCreationAddress}`);
-    console.log(`contractCreationAddressOwner: ${this.owner}`);
+    logger.debug(`contractCreationAddress: ${contractCreationAddress}`);
+    logger.debug(`contractCreationAddressOwner: ${this.owner}`);
     return contractCreationAddress === this.owner;
   }
 
@@ -94,7 +98,7 @@ export default class urlContractChecker {
 
       return addresses.includes(this.contractAddress);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return false;
     } finally {
       if (this.tmpDir) {
