@@ -4,6 +4,7 @@ import glob from 'glob';
 import fetch from 'node-fetch';
 import os from 'os';
 import path from 'path';
+import utils from 'web3-utils';
 import scrape from 'website-scraper';
 
 import logger from './tslog-config';
@@ -19,6 +20,13 @@ export default class UrlContractChecker {
   public tmpDir: any;
 
   constructor(url: string, contractAddress: string, owner: string) {
+
+    if (!utils.isAddress(contractAddress)) {
+      throw new Error(`Invalid contract address: ${contractAddress}`);
+    } else if (!utils.isAddress(owner)) {
+      throw new Error(`Invalid owner address: ${owner}`);
+    }
+
     if (!url.startsWith(`http`)) {
       this.url = new URL(`https://${url}`);
     } else {
