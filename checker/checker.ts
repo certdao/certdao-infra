@@ -13,6 +13,11 @@ dotenv.config();
 
 const ETHERSCAN_URI = "https://api.etherscan.io/api?";
 
+export interface ResponseObject {
+  foundContractAddressOnSite: boolean;
+  contractCreationAddressMatchesOwner: boolean;
+}
+
 export default class UrlContractChecker {
   public url: URL;
   public contractAddress: string;
@@ -20,7 +25,6 @@ export default class UrlContractChecker {
   public tmpDir: any;
 
   constructor(url: string, contractAddress: string, owner: string) {
-
     if (!utils.isAddress(contractAddress)) {
       throw new Error(`Invalid contract address: ${contractAddress}`);
     } else if (!utils.isAddress(owner)) {
@@ -36,7 +40,7 @@ export default class UrlContractChecker {
     this.owner = owner;
   }
 
-  public async checkOwner() {
+  public async checkOwner(): Promise<ResponseObject> {
     try {
       const foundContractAddressOnSite: boolean =
         await this.checkContractOnSite();
@@ -49,14 +53,18 @@ export default class UrlContractChecker {
         `contractCreateAddressMatchesOwner: ${contractCreationAddressMatchesOwner}`
       );
 
-      if (foundContractAddressOnSite && contractCreationAddressMatchesOwner) {
-        return true;
-      } else {
-        return false;
-      }
+      const returnObject: ResponseObject = {
+        foundContractAddressOnSite,
+        contractCreationAddressMatchesOwner,
+      };
+
+      return returnObject;
     } catch (error) {
       logger.error(error);
-      return false;
+      return {
+        foundContractAddressOnSite: false,
+        contractCreationAddressMatchesOwner: false,
+      };
     }
   }
 
