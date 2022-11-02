@@ -72,9 +72,15 @@ export default class UrlContractChecker {
     const etherscanApiUrl = `${ETHERSCAN_URI}module=contract&action=getcontractcreation&contractaddresses=${this.contractAddress}&apikey=${process.env.ETHERSCAN_API_KEY}`;
 
     logger.debug(etherscanApiUrl);
+
     const response = await fetch(etherscanApiUrl);
     const json: any = await response.json();
+
     logger.debug(`json: ${JSON.stringify(json)}`);
+
+    if (json.result.length === 0) {
+      return false;
+    }
 
     const contractCreation = json.result[0];
     const contractCreationAddress = contractCreation.contractCreator;
