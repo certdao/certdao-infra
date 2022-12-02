@@ -11,6 +11,7 @@ if (process.env.NODE_ENV !== "production") {
 const API_USERNAME: string = process.env.DISCOURSE_API_USERNAME as string;
 const API_KEY: string = process.env.DISCOURSE_API_KEY as string;
 const CATEGORY_KEY = 5;
+const EXTERNAL_ID_LIMIT_PER_ENTRY = Math.floor(48 / 3);
 
 export async function createGovernancePoll(
   url: string,
@@ -20,7 +21,7 @@ export async function createGovernancePoll(
 ) {
   let createdCorrectly = true;
   try {
-    const domain = url;
+    let domain = url;
     const checker = new URLContractChecker(url, contractAddress, owner);
     const result: ResponseObject = await checker.checkOwner();
 
@@ -28,15 +29,20 @@ export async function createGovernancePoll(
       `Creating governance poll for ${domain}. Info: contractAddress: ${contractAddress}, owner: ${owner}, transactionHash: ${transactionHash}}`
     );
 
-    // 50 is the discourse external id limit
-    const external_id = `${domain}_${owner}_${contractAddress}`.substring(
+    // replace periods in domain
+    let re = /\./gi;
+    domain = domain.replace(re, "").substring(0, EXTERNAL_ID_LIMIT_PER_ENTRY);
+
+    const external_id = `${domain}${owner.substring(
       0,
-      50
-    );
+      EXTERNAL_ID_LIMIT_PER_ENTRY
+    )}${contractAddress.substring(0, EXTERNAL_ID_LIMIT_PER_ENTRY)}`;
+
+    logger.info(`External id: ${external_id}`);
 
     const submitBody = {
-      title: `Discuss initial verification of: ${domain}`,
-      raw: `Domain: ${domain} was sent for verification by ${owner} with contract address: ${contractAddress} and transaction hash: ${transactionHash}.\nHeuristic checks: \nContract address found on site: ${result.foundContractAddressOnSite}\nContract creation address matches owner: ${result.contractCreationAddressMatchesOwner}`,
+      title: `Discuss initial contract verification for domain: ${url}`,
+      raw: `Domain: ${url} was sent for verification by: ${owner}\n with contract address:\n ${contractAddress}\n and transaction hash:\n ${transactionHash}.\n\nHeuristic checks: \nContract address found on site: ${result.foundContractAddressOnSite}\nContract creation address matches owner: ${result.contractCreationAddressMatchesOwner}`,
       category: CATEGORY_KEY,
       created_at: Date.now().toString(),
       external_id: external_id,
@@ -54,7 +60,7 @@ export async function createGovernancePoll(
         },
       }
     );
-    console.log(await resultInfo.json());
+    logger.debug(await resultInfo.json());
     createdCorrectly = await resultInfo.ok;
   } catch (error) {
     logger.error(error);
