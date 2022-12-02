@@ -1,20 +1,36 @@
+import * as dotenv from 'dotenv';
 import fs from 'fs';
 import glob from 'glob';
 import fetch from 'node-fetch';
 import os from 'os';
 import path from 'path';
+import utils from 'web3-utils';
 import scrape from 'website-scraper';
+
+import logger from './tslog-config';
+
+dotenv.config();
 
 const ETHERSCAN_URI = "https://api.etherscan.io/api?";
 
-// Use the etherscan API to get the contract deployer.
-export default class urlContractChecker {
-  public url: any;
+export interface ResponseObject {
+  foundContractAddressOnSite: boolean;
+  contractCreationAddressMatchesOwner: boolean;
+}
+
+export default class UrlContractChecker {
+  public url: URL;
   public contractAddress: string;
   public owner: string;
   public tmpDir: any;
 
   constructor(url: string, contractAddress: string, owner: string) {
+    if (!utils.isAddress(contractAddress)) {
+      throw new Error(`Invalid contract address: ${contractAddress}`);
+    } else if (!utils.isAddress(owner)) {
+      throw new Error(`Invalid owner address: ${owner}`);
+    }
+
     if (!url.startsWith(`http`)) {
       this.url = new URL(`https://${url}`);
     } else {
@@ -24,43 +40,53 @@ export default class urlContractChecker {
     this.owner = owner;
   }
 
-  public async checkOwner() {
+  public async checkOwner(): Promise<ResponseObject> {
     try {
       const foundContractAddressOnSite: boolean =
         await this.checkContractOnSite();
-      console.log(`foundContractAddressOnSite: ${foundContractAddressOnSite}`);
+      logger.debug(`foundContractAddressOnSite: ${foundContractAddressOnSite}`);
 
       const contractCreationAddressMatchesOwner: boolean =
         await this.checkContractCreation();
 
-      console.log(
+      logger.debug(
         `contractCreateAddressMatchesOwner: ${contractCreationAddressMatchesOwner}`
       );
 
-      if (foundContractAddressOnSite && contractCreationAddressMatchesOwner) {
-        return true;
-      } else {
-        return false;
-      }
+      const returnObject: ResponseObject = {
+        foundContractAddressOnSite,
+        contractCreationAddressMatchesOwner,
+      };
+
+      return returnObject;
     } catch (error) {
-      console.error(error);
-      return false;
+      logger.error(error);
+      return {
+        foundContractAddressOnSite: false,
+        contractCreationAddressMatchesOwner: false,
+      };
     }
   }
 
   public async checkContractCreation() {
     const etherscanApiUrl = `${ETHERSCAN_URI}module=contract&action=getcontractcreation&contractaddresses=${this.contractAddress}&apikey=${process.env.ETHERSCAN_API_KEY}`;
 
-    console.log(etherscanApiUrl);
+    logger.debug(etherscanApiUrl);
+
     const response = await fetch(etherscanApiUrl);
     const json: any = await response.json();
-    console.log(`json: ${JSON.stringify(json)}`);
+
+    logger.debug(`json: ${JSON.stringify(json)}`);
+
+    if (json.result.length === 0) {
+      return false;
+    }
 
     const contractCreation = json.result[0];
     const contractCreationAddress = contractCreation.contractCreator;
 
-    console.log(`contractCreationAddress: ${contractCreationAddress}`);
-    console.log(`contractCreationAddressOwner: ${this.owner}`);
+    logger.debug(`contractCreationAddress: ${contractCreationAddress}`);
+    logger.debug(`contractCreationAddressOwner: ${this.owner}`);
     return contractCreationAddress === this.owner;
   }
 
@@ -94,7 +120,7 @@ export default class urlContractChecker {
 
       return addresses.includes(this.contractAddress);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       return false;
     } finally {
       if (this.tmpDir) {
