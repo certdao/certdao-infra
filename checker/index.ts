@@ -26,6 +26,10 @@ app.use(
   })
 );
 
+app.get("/", (req, res) => {
+  res.send(`certdao infra: ${Date.now().toLocaleString()}`);
+});
+
 app.post("/validateContract", async (req, res) => {
   logger.info(req.body);
   try {
