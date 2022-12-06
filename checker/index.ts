@@ -7,9 +7,12 @@ import URLContractChecker, { ResponseObject } from './checker';
 import { createGovernancePoll } from './createGovernance';
 import logger from './tslog-config';
 
+
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
 }
+
+const ORIGIN = process.env.ORIGIN || "http://localhost:3000";
 
 const app = express();
 const port = 4300;
@@ -19,7 +22,7 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ORIGIN,
   })
 );
 

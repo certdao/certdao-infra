@@ -15,7 +15,7 @@ async function main() {
     raw: "test domain verification automated post",
     category: CATEGORY_KEY,
     created_at: Date.now().toString(),
-    external_id: "test1",
+    external_id: "test3",
   };
 
   const result: any = await fetch(`${process.env.DISCOURSE_URL}/posts.json`, {
@@ -34,13 +34,14 @@ async function main() {
 
 async function getFromExternalId() {
   const result: any = await fetch(
-    `${process.env.DISCOURSE_URL}/t/external_id/test1.json`,
+    `${process.env.DISCOURSE_URL}/t/external_id/test3.json`,
     {
       method: "GET",
     }
   );
 
   const jsonResult = await result.json();
+  console.log(jsonResult);
   console.log(jsonResult?.slug);
 }
 
