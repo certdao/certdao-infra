@@ -4,7 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 
 import URLContractChecker, { ResponseObject } from './checker';
-import { createGovernancePoll } from './createGovernance';
+import { createGovernancePoll, getGovernancePollFromExternalId } from './createGovernance';
 import logger from './tslog-config';
 
 
@@ -74,6 +74,39 @@ app.post("/createGovernancePoll", async (req, res) => {
 
       if (success) {
         res.status(200).send("Success");
+      } else {
+        throw new Error(
+          "Failed to create governance poll with input: " +
+            JSON.stringify(req.body)
+        );
+      }
+    }
+  } catch (error) {
+    logger.error(error);
+    res.status(400).send(error);
+  }
+});
+
+/**
+ * Generate and return the discourse slug corresponding to the input.
+ */
+app.post("/getGovernancePoll", async (req, res) => {
+  logger.info(req.body);
+  try {
+    const { url, contractAddress, owner } = req.body;
+
+    if (!owner || !contractAddress || !url) {
+      logger.info("missing params");
+      res.status(400).send("Missing required parameters");
+    } else {
+      const link = await getGovernancePollFromExternalId(
+        url,
+        contractAddress,
+        owner
+      );
+
+      if (link) {
+        res.status(200).send(JSON.stringify({ link }));
       } else {
         throw new Error(
           "Failed to create governance poll with input: " +
