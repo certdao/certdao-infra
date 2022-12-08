@@ -127,7 +127,7 @@ export default class UrlContractChecker {
       return false;
     } finally {
       if (this.tmpDir) {
-        fs.rmdirSync(this.tmpDir, { recursive: true });
+        fs.rmSync(this.tmpDir, { recursive: true });
       }
     }
   }

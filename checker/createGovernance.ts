@@ -27,6 +27,9 @@ function generateExternalId(
     EXTERNAL_ID_LIMIT_PER_ENTRY
   )}${contractAddress.substring(0, EXTERNAL_ID_LIMIT_PER_ENTRY)}`;
 
+  logger.debug(
+    `Created external id: ${external_id} from inputs: ${domain}, ${owner}, ${contractAddress}`
+  );
   return external_id;
 }
 
@@ -93,7 +96,7 @@ export async function getGovernancePollFromExternalId(
     }
   );
 
-  console.log(result);
+  logger.info(`Got result from input: ${external_id}`);
   if (result.ok) {
     const jsonResult = await result.json();
     return `${process.env.DISCOURSE_URL}/t/${jsonResult?.slug}`;

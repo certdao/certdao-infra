@@ -12,17 +12,26 @@ if (process.env.NODE_ENV !== "production") {
   dotenv.config();
 }
 
-const ORIGIN = process.env.ORIGIN || "http://localhost:3000";
-
 const app = express();
 const port = 4300;
 
 app.use(express.json());
 app.use(helmet());
 
+let allowedOrigins = ["http://localhost:3000", process.env?.ORIGIN];
+logger.debug(`ORIGIN: ${process.env.ORIGIN}`);
+
 app.use(
   cors({
-    origin: ORIGIN,
+    origin: function (origin, callback) {
+      if (allowedOrigins.indexOf(origin) === -1) {
+        var msg =
+          "The CORS policy for this site does not " +
+          "allow access from the specified Origin.";
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
   })
 );
 
@@ -30,7 +39,7 @@ app.get("/", (req, res) => {
   res.send(`certdao infra: ${Date.now().toLocaleString()}`);
 });
 
-app.post("/validateContract", async (req, res) => {
+app.post("/validateContract", cors(), async (req, res) => {
   logger.info(req.body);
   try {
     const { url, contractAddress, owner } = req.body;
@@ -56,7 +65,7 @@ app.post("/validateContract", async (req, res) => {
  *
  * If passes both checks, submit a snapshot vote.
  */
-app.post("/createGovernancePoll", async (req, res) => {
+app.post("/createGovernancePoll", cors(), async (req, res) => {
   logger.info(req.body);
   try {
     const { transactionHash, url, contractAddress, owner } = req.body;
@@ -90,7 +99,7 @@ app.post("/createGovernancePoll", async (req, res) => {
 /**
  * Generate and return the discourse slug corresponding to the input.
  */
-app.post("/getGovernancePoll", async (req, res) => {
+app.post("/getGovernancePoll", cors(), async (req, res) => {
   logger.info(req.body);
   try {
     const { url, contractAddress, owner } = req.body;
