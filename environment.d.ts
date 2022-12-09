@@ -6,6 +6,7 @@ declare global {
       DISCOURSE_API_USERNAME: string;
       NODE_ENV: "development" | "production";
       LOG_LEVEL?: string;
+      ORIGIN?: string;
     }
   }
 }

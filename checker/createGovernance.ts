@@ -14,23 +14,31 @@ const CATEGORY_KEY = 5;
 const EXTERNAL_ID_LIMIT_PER_ENTRY = Math.floor(48 / 3);
 
 function generateExternalId(
-  domain: string,
+  url: string,
   owner: string,
   contractAddress: string
 ) {
-  // Remove all dots from domain
+  // Remove all dots from url
   let re = /\./gi;
-  domain = domain.replace(re, "").substring(0, EXTERNAL_ID_LIMIT_PER_ENTRY);
+  url = url.replace(re, "").substring(0, EXTERNAL_ID_LIMIT_PER_ENTRY);
 
-  const external_id = `${domain}${owner.substring(
+  const external_id = `${url}${owner.substring(
     0,
     EXTERNAL_ID_LIMIT_PER_ENTRY
   )}${contractAddress.substring(0, EXTERNAL_ID_LIMIT_PER_ENTRY)}`;
 
   logger.debug(
-    `Created external id: ${external_id} from inputs: ${domain}, ${owner}, ${contractAddress}`
+    `Created external id: ${external_id} from inputs: ${url}, ${owner}, ${contractAddress}`
   );
   return external_id;
+}
+
+function getRandomIntForTitle(both = true) {
+  if (both) {
+    return Math.floor(Math.random() * 100) * 2;
+  } else {
+    return Math.floor(Math.random() * 100) * 2 + 1;
+  }
 }
 
 export async function createGovernancePoll(
@@ -44,6 +52,9 @@ export async function createGovernancePoll(
     const checker = new URLContractChecker(url, contractAddress, owner);
     const result: ResponseObject = await checker.checkOwner();
 
+    // sanitize url from the protocol and www
+    url = url.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split("/")[0];
+
     logger.info(
       `Creating governance poll for ${url}. Info: contractAddress: ${contractAddress}, owner: ${owner}, transactionHash: ${transactionHash}}`
     );
@@ -52,8 +63,20 @@ export async function createGovernancePoll(
 
     logger.info(`External id: ${external_id}`);
 
+    // Generate a random number for the title to ensure title is unique (multiple submissions from the same site)
+    // Contract address cannot be included in discourse titles.
+    let randomInt = 0;
+    if (
+      result.foundContractAddressOnSite &&
+      result.contractCreationAddressMatchesOwner
+    ) {
+      randomInt = getRandomIntForTitle(true);
+    } else {
+      randomInt = getRandomIntForTitle(false);
+    }
+
     const submitBody = {
-      title: `Discuss initial contract verification for domain: ${url}`,
+      title: `Discuss initial contract verification for url: ${url} - [${randomInt}]`,
       raw: `Domain: ${url} was sent for verification by: ${owner}\n with contract address:\n ${contractAddress}\n and transaction hash:\n ${transactionHash}.\n\nHeuristic checks: \nContract address found on site: ${result.foundContractAddressOnSite}\nContract creation address matches owner: ${result.contractCreationAddressMatchesOwner}`,
       category: CATEGORY_KEY,
       created_at: Date.now().toString(),
@@ -82,13 +105,18 @@ export async function createGovernancePoll(
 }
 
 export async function getGovernancePollFromExternalId(
-  domain: string,
-  owner: string,
-  contractAddress: string
+  url: string,
+  contractAddress: string,
+  owner: string
 ) {
-  const external_id = generateExternalId(domain, owner, contractAddress);
+  // sanitize url from the protocol and www
+  url = url.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split("/")[0];
 
-  console.log(`${process.env.DISCOURSE_URL}/t/external_id/${external_id}.json`);
+  logger.info(
+    `Geting governance poll for ${url}. Info: contractAddress: ${contractAddress}, owner: ${owner}}`
+  );
+  const external_id = generateExternalId(url, owner, contractAddress);
+
   const result: any = await fetch(
     `${process.env.DISCOURSE_URL}/t/external_id/${external_id}.json`,
     {
@@ -96,11 +124,12 @@ export async function getGovernancePollFromExternalId(
     }
   );
 
-  logger.info(`Got result from input: ${external_id}`);
-  if (result.ok) {
+  if (await result.ok) {
     const jsonResult = await result.json();
+    logger.debug(`Result is okay. Returning ${jsonResult?.slug}`);
     return `${process.env.DISCOURSE_URL}/t/${jsonResult?.slug}`;
   } else {
+    logger.debug("Result is not okay. Returning standard discourse url.");
     return `${process.env.DISCOURSE_URL}`;
   }
 }
