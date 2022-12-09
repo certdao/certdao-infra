@@ -9,8 +9,11 @@ import scrape from 'website-scraper';
 
 import logger from './tslog-config';
 
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
+// Get proper ETHERSCAN API KEY
 const ETHERSCAN_URI = "https://api.etherscan.io/api?";
 
 export interface ResponseObject {
@@ -78,7 +81,7 @@ export default class UrlContractChecker {
 
     logger.debug(`json: ${JSON.stringify(json)}`);
 
-    if (json.result.length === 0) {
+    if (!json?.result || json.result.length === 0) {
       return false;
     }
 
@@ -124,7 +127,7 @@ export default class UrlContractChecker {
       return false;
     } finally {
       if (this.tmpDir) {
-        fs.rmdirSync(this.tmpDir, { recursive: true });
+        fs.rmSync(this.tmpDir, { recursive: true });
       }
     }
   }

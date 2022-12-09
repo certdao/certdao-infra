@@ -1,4 +1,4 @@
 node_modules
-*.d.ts
 dst/*
 .env
+*.log
