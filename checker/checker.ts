@@ -13,8 +13,8 @@ if (process.env.NODE_ENV !== "production") {
   dotenv.config();
 }
 
-// Get proper ETHERSCAN API KEY
 const ETHERSCAN_URI = "https://api.etherscan.io/api?";
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
 
 export interface ResponseObject {
   foundContractAddressOnSite: boolean;
@@ -72,7 +72,7 @@ export default class UrlContractChecker {
   }
 
   public async checkContractCreation() {
-    const etherscanApiUrl = `${ETHERSCAN_URI}module=contract&action=getcontractcreation&contractaddresses=${this.contractAddress}&apikey=${process.env.ETHERSCAN_API_KEY}`;
+    const etherscanApiUrl = `${ETHERSCAN_URI}module=contract&action=getcontractcreation&contractaddresses=${this.contractAddress}&apikey=${ETHERSCAN_API_KEY}`;
 
     logger.debug(etherscanApiUrl);
 
