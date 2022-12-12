@@ -86,11 +86,11 @@ export default class UrlContractChecker {
     }
 
     const contractCreation = json.result[0];
-    const contractCreationAddress = contractCreation.contractCreator;
+    const contractCreationAddress = contractCreation?.contractCreator;
 
     logger.debug(`contractCreationAddress: ${contractCreationAddress}`);
     logger.debug(`contractCreationAddressOwner: ${this.owner}`);
-    return contractCreationAddress === this.owner;
+    return contractCreationAddress.toLowerCase() === this.owner.toLowerCase();
   }
 
   public async checkContractOnSite(): Promise<boolean> {
